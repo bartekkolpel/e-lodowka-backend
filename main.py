@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from itertools import product
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 from sqlmodel import SQLModel,select,Session
 from database import engine
 from models import Product
