@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from itertools import product
 from fastapi import FastAPI
 from sqlmodel import SQLModel,select,Session
 from database import engine
@@ -28,3 +29,19 @@ def get_products():
         # SQL: SELECT * FROM product;
         products = session.exec(select(Product)).all()
         return products
+
+
+
+@app.delete("/products/{product_id}")
+def delete_product(product_id: int): 
+    with Session(engine) as session:
+        product = session.get(Product, product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Brak towaru w lodówce!")
+        session.delete(product)
+        session.commit()
+        
+        print(f"LOG: Usunięto produkt o ID {product_id}") 
+        return {"ok": True, "message": f"Produkt {product.name} usunięty."}    
+
+
