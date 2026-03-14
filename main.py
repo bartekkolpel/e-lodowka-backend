@@ -1,6 +1,10 @@
 from contextlib import asynccontextmanager
+from email import message
 from itertools import product
+from math import prod
 from fastapi import FastAPI,HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import session
 from sqlmodel import SQLModel,select,Session
 from database import engine
 from models import Product
@@ -14,6 +18,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)    
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],
+)
+
 
 @app.post("/products/")
 def add_product(product: Product):
@@ -43,5 +57,23 @@ def delete_product(product_id: int):
         
         print(f"LOG: Usunięto produkt o ID {product_id}") 
         return {"ok": True, "message": f"Produkt {product.name} usunięty."}    
+
+
+
+@app.patch("/products/{product_id}")
+def update_product(product_id: int, new_quantity: float = None, new_unit: str = None):
+    with Session(engine) as session:
+        product = session.get(Product, product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="Brak towaru!")
+        if new_quantity is not None:
+            product.quantity = new_quantity
+        if new_unit is not None:
+            product.unit = new_unit
+
+        session.add(product)
+        session.commit()
+        session.refresh(product)
+        return product
 
 
