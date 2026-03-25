@@ -1,14 +1,11 @@
 from contextlib import asynccontextmanager
-from email import message
-from itertools import product
-from math import prod
+from typing import List
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import session
 from sqlmodel import SQLModel,select,Session
 from database import engine
 from models import Product
-
+from models import Product, ProductStatus
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,11 +35,20 @@ def add_product(product: Product):
         return product
 
 @app.get("/products/")
-def get_products():
+def get_products(status: ProductStatus = ProductStatus.ACTIVE):
     with Session(engine) as session:
-        # SQL: SELECT * FROM product;
-        products = session.exec(select(Product)).all()
+        products = session.exec(select(Product).where(Product.status == status)).all()
         return products
+
+
+@app.post("/products/bulk")
+def add_multiple_products(products: List[Product]):
+    with Session(engine) as session:
+        for p in products:
+            p.status = ProductStatus.PENDING 
+            session.add(p)
+        session.commit()
+        return {"message": f"Pomyślnie wrzucono {len(products)} produktów do poczekalni!"}
 
 
 
